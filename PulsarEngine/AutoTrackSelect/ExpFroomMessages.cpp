@@ -109,20 +109,5 @@ u32 CorrectModeButtonsBMG(const RKNet::ROOMPacket& packet) {
 }
 kmCall(0x805dcb74, CorrectModeButtonsBMG);
 
-void CorrectRoomStartButton(Pages::Globe::MessageWindow& control, u32 bmgId, Text::Info* info) {
-    Network::SetGlobeMsgColor(control, -1);
-    if (bmgId == BMG_PLAY_GP || bmgId == BMG_PLAY_TEAM_GP) {
-        const u32 hostContext = System::sInstance->netMgr.hostContext;
-        const bool isOTT = hostContext & (1 << PULSAR_MODE_OTT);
-        const bool isKO = hostContext & (1 << PULSAR_MODE_KO);
-        if (isOTT || isKO) {
-            const bool isTeam = bmgId == BMG_PLAY_TEAM_GP;
-            bmgId = (BMG_PLAY_OTT - 1) + isOTT + isKO * 2 + isTeam * 3;
-        }
-    }
-    control.SetMessage(bmgId, info);
-}
-kmCall(0x805e4df4, CorrectRoomStartButton);
-
 }//namespace UI
 }//namespace Pulsar

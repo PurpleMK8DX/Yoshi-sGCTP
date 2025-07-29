@@ -34,33 +34,60 @@ static void BeforeROOMSend(RKNet::PacketHolder<PulROOM>* packetHolder, PulROOM* 
         const u8 koSetting = settings.GetSettingValue(Settings::SETTINGSTYPE_KO, SETTINGKO_ENABLED) && destPacket->message == 0; //KO only enabled for normal GPs
         //invert mii setting as the first button is enabled, not disabled, so a value of 1 indicates disabled
         const u8 ottOnline = settings.GetSettingValue(Settings::SETTINGSTYPE_OTT, SETTINGOTT_ONLINE);
+        const u8 regOnly = settings.GetSettingValue(Settings::SETTINGSTYPE_HOST, SETTINGHOST_ALLOW_REGS);
         destPacket->hostSystemContext = (ottOnline != OTTSETTING_OFFLINE_DISABLED) << PULSAR_MODE_OTT //ott
             | (ottOnline == OTTSETTING_ONLINE_FEATHER) << PULSAR_FEATHER //ott feather
             | (settings.GetSettingValue(Settings::SETTINGSTYPE_OTT, SETTINGOTT_ALLOWUMTS) ^ true) << PULSAR_UMTS //ott umts
             | koSetting << PULSAR_MODE_KO
-            | (settings.GetSettingValue(Settings::SETTINGSTYPE_HOST, SETTINGHOST_ALLOW_MIIHEADS) ^ true) << PULSAR_MIIHEADS
-            | settings.GetSettingValue(Settings::SETTINGSTYPE_HOST, SETTINGHOST_RADIO_HOSTWINS) << PULSAR_HAW;
+            | (settings.GetSettingValue(Settings::SETTINGSTYPE_HOST, SETTINGHOST_ALLOW_MIIHEADS) ^ false) << PULSAR_MIIHEADS
+            | settings.GetSettingValue(Settings::SETTINGSTYPE_HOST, SETTINGHOST_RADIO_HOSTWINS) << PULSAR_HAW
+            | settings.GetSettingValue(Settings::SETTINGSTYPE_HOST, SETTINGHOST_ALLOW_REGS) << PULSAR_REGS
+            | (regOnly == HOSTSETTING_ALLOW_REGONLY_ENABLED) << PULSAR_REGSONLY;
 
         u8 raceCount;
         if (koSetting == KOSETTING_ENABLED) raceCount = 0xFE;
         else switch (settings.GetSettingValue(Settings::SETTINGSTYPE_HOST, SETTINGHOST_SCROLL_GP_RACES)) {
-        case(0x2):
+        case(1):
+            raceCount = 4;
+            break;
+        case(2):
+            raceCount = 5;
+            break;
+        case(3):
+            raceCount = 6;
+            break;
+        case(4):
             raceCount = 7;
             break;
-        case(0x4):
+        case(5):
+            raceCount = 8;
+            break;
+        case(6):
+            raceCount = 9;
+            break;
+        case(7):
+            raceCount = 10;
+            break;
+        case(8):
             raceCount = 11;
             break;
-        case(0x6):
-            raceCount = 23;
+        case(9):
+            raceCount = 15;
             break;
-        case(0x8):
+        case(10):
             raceCount = 31;
             break;
-        case(0xA):
+        case(11):
             raceCount = 63;
             break;
-        case(0xC):
+        case(12):
+            raceCount = 0;
+            break;
+        case(13):
             raceCount = 1;
+            break;
+        case(14):
+            raceCount = 2;
             break;
         default:
             raceCount = 3;

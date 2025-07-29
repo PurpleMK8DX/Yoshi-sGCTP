@@ -80,7 +80,6 @@ void ExpSELECTHandler::DecideTrack(ExpSELECTHandler& self) {
     if (mode == RKNet::ONLINEMODE_PRIVATE_VS && system->IsContext(PULSAR_MODE_KO)) system->koMgr->PatchAids(sub);
 
     if (mode == RKNet::ONLINEMODE_PRIVATE_VS && Settings::Mgr::Get().GetSettingValue(Settings::SETTINGSTYPE_HOST, SETTINGHOST_RADIO_HOSTWINS) && !system->IsContext(PULSAR_MODE_KO)) {
-
         self.toSendPacket.winningVoterAid = hostAid;
         u16 hostVote = self.toSendPacket.pulVote;
         if (hostVote == 0xFF) hostVote = cupsConfig->RandomizeTrack();
@@ -184,8 +183,8 @@ static void DecideCC(ExpSELECTHandler& handler) {
         RKNet::Controller* controller = RKNet::Controller::sInstance;
         const RKNet::RoomType roomType = controller->roomType;
         u8 ccClass = 1; //1 100, 2 150, 3 mirror
-        if (roomType == RKNet::ROOMTYPE_VS_REGIONAL
-            || roomType == RKNet::ROOMTYPE_FROOM_HOST && ccSetting == HOSTSETTING_CC_NORMAL) {
+        if (roomType == RKNet::ROOMTYPE_VS_REGIONAL || roomType == RKNet::ROOMTYPE_JOINING_REGIONAL || 
+        (roomType == RKNet::ROOMTYPE_FROOM_HOST && ccSetting == HOSTSETTING_CC_NORMAL)) {
             Random random;
             const u32 result = random.NextLimited(100); //25
             System* system = System::sInstance;
@@ -307,7 +306,7 @@ void InitPatch() {
     const Settings::Mgr& settings = Settings::Mgr::Get();
     bool allowChangeCombo;
     const RKNet::Controller* controller = RKNet::Controller::sInstance;
-    if (controller->roomType == RKNet::ROOMTYPE_VS_REGIONAL) allowChangeCombo = true;
+    if (controller->roomType == RKNet::ROOMTYPE_VS_REGIONAL || controller->roomType == RKNet::ROOMTYPE_JOINING_REGIONAL) allowChangeCombo = true;
     else allowChangeCombo = settings.GetSettingValue(Settings::SETTINGSTYPE_OTT, SETTINGOTT_ALLOWCHANGECOMBO);
     select->toSendPacket.allowChangeComboStatus = allowChangeCombo;
     select->toSendPacket.koPerRace = settings.GetSettingValue(Settings::SETTINGSTYPE_KO, SETTINGKO_KOPERRACE) + 1;

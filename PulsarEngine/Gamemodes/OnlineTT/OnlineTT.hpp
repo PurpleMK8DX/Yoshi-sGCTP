@@ -15,7 +15,17 @@ enum VoteState {
     SELECT_READY,
 };
 
-void AddGhostToVS();
+struct Mgr {
+    Mgr() : hideNames(false) {}
+    void Reset() {
+        voteState = COMBO_NONE;
+        aidsInRace = 0;
+    }
+    u32 voteState;
+    bool hideNames;
+    u32 aidsInRace;
+};
+//void AddGhostToVS();
 
 }//namespace OTT
 }//namespace Pulsar

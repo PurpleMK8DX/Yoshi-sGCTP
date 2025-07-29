@@ -10,7 +10,7 @@
 namespace Pulsar {
 namespace OTT {
 
-
+/*
 bool IsVSGhost(u32 playerId) {
     if(System::sInstance->IsContext(PULSAR_MODE_OTT)) {
         const Racedata* racedata = Racedata::sInstance;
@@ -159,7 +159,7 @@ end:
         )
 }
 kmCall(0x8053e4a4, PatchImportRH2);
-
+*/
 }//namespace Ghosts
 }//namespace Pulsar
 

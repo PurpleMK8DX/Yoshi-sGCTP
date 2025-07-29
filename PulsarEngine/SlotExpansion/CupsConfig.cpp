@@ -48,7 +48,7 @@ winningCourse(PULSARID_NONE), selectedCourse(PULSARID_FIRSTREG), lastSelectedCup
     u16 cumulativeVarCount = 0;
     for (int i = 0; i < ctsCount; ++i) {
         invertedAlphabeticalArray[alphabeticalArray[i]] = i;
-        variantsOffs[i] = cumulativeVarCount * sizeof(Variant);
+        variantsOffs[i] = cumulativeVarCount; //* sizeof(Variant);
         cumulativeVarCount += mainTracks[i].variantCount;
     }
 }
@@ -78,14 +78,14 @@ inline int CupsConfig::GetCorrectMusicSlot() const {
 
 int CupsConfig::GetCRC32(PulsarId pulsarId) const {
     if (IsReg(pulsarId)) return RegsCRC32[pulsarId];
-    else return this->cur.crc32;
+    else return this->GetTrack(pulsarId).crc32;
 }
 
 void CupsConfig::GetTrackGhostFolder(char* dest, PulsarId pulsarId) const {
     const u32 crc32 = this->GetCRC32(pulsarId);
     const char* modFolder = System::sInstance->GetModFolder();
-    if (IsReg(pulsarId)) snprintf(dest, IOS::ipcMaxPath, "%s/Ghosts/%s", modFolder, &crc32);
-    else snprintf(dest, IOS::ipcMaxPath, "%s/Ghosts/%08x", modFolder, crc32);
+    if (IsReg(pulsarId)) snprintf(dest, IOS::ipcMaxPath, "%s/ghosts/%s", modFolder, &crc32);
+    else snprintf(dest, IOS::ipcMaxPath, "%s/ghosts/%08x", modFolder, crc32);
 }
 
 u32 CupsConfig::RandomizeVariant(PulsarId id) const {
@@ -129,19 +129,43 @@ void CupsConfig::SetWinning(PulsarId id, u32 variantIdx) {
 
 void CupsConfig::ToggleCTs(bool enabled) {
     u32 count;
-    if (!enabled) {
+    bool isDisabled = false;
+    bool isRegsOnly = false;
+
+    // Check if the room type requires disabling custom tracks
+    if (RKNet::Controller::sInstance->roomType == RKNet::ROOMTYPE_FROOM_HOST || 
+        RKNet::Controller::sInstance->roomType == RKNet::ROOMTYPE_FROOM_NONHOST) {
+        isDisabled = !System::sInstance->IsContext(PULSAR_REGS);
+        isRegsOnly = System::sInstance->IsContext(PULSAR_REGSONLY);
+    }
+
+    if (isRegsOnly) {
+        count = 0;
+        hasRegs = true;
+        selectedCourse = PULSARID_FIRSTREG;
+        lastSelectedCup = PULSARCUPID_FIRSTREG;
+        lastSelectedCupButtonIdx = 0;
+    } else if (!enabled) {
         if (lastSelectedCup > 7) {
             hasRegs = true;
-            selectedCourse = PULSARID_FIRSTREG;
-            lastSelectedCup = PULSARCUPID_FIRSTREG; //CT cup -> regs
-            lastSelectedCupButtonIdx = 0;
+            //selectedCourse = PULSARID_FIRSTREG;
+            //lastSelectedCup = PULSARCUPID_FIRSTREG;
+            //lastSelectedCupButtonIdx = 0;
         }
         count = 0;
-    }
-    else {
+        selectedCourse = PULSARID_FIRSTREG;
+        lastSelectedCup = PULSARCUPID_FIRSTREG;
+        lastSelectedCupButtonIdx = 0;
+    } else if (isDisabled) {
         count = definedCTsCupCount;
-        hasRegs = regsMode > 0;
+        hasRegs = false;
+    } else {
+        count = definedCTsCupCount;
+        hasRegs = (RKNet::Controller::sInstance->roomType != RKNet::ROOMTYPE_VS_REGIONAL) &&
+                  (RKNet::Controller::sInstance->roomType != RKNet::ROOMTYPE_JOINING_REGIONAL) ||
+                  (RKNet::Controller::sInstance->connectionState == RKNet::CONNECTIONSTATE_SHUTDOWN);
     }
+
     ctsCupCount = count;
 }
 
@@ -153,10 +177,10 @@ Settings::Hook CTLayout(CupsConfig::SetLayout);
 void CupsConfig::GetExpertPath(char* dest, PulsarId id, TTMode mode) const {
     if (this->IsReg(id)) {
         const u32 crc32 = this->GetCRC32(id);
-        snprintf(dest, IOS::ipcMaxPath, "/Experts/%s_%s.rkg", &crc32, System::ttModeFolders[mode]);
+        snprintf(dest, IOS::ipcMaxPath, "/experts/%s_%s.rkg", &crc32, System::ttModeFolders[mode]);
     }
     else {
-        snprintf(dest, IOS::ipcMaxPath, "/Experts/%d_%s.rkg", this->ConvertTrack_PulsarIdToRealId(id), System::ttModeFolders[mode]);
+        snprintf(dest, IOS::ipcMaxPath, "/experts/%d_%s.rkg", this->ConvertTrack_PulsarIdToRealId(id), System::ttModeFolders[mode]);
     }
 }
 
@@ -246,6 +270,19 @@ PulsarId CupsConfig::ConvertTrack_IdxToPulsarId(u32 idx) const {
     return static_cast<PulsarId>(idx);
 }
 
+/*
+bool CupsConfig::IsRegsSituation() {
+    const RKNet::Controller* rkNet = RKNet::Controller::sInstance;
+    if(rkNet->connectionState == RKNet::CONNECTIONSTATE_SHUTDOWN) return false;
+    switch(rkNet->roomType) {
+        case(RKNet::ROOMTYPE_VS_REGIONAL):
+        case(RKNet::ROOMTYPE_JOINING_REGIONAL): return false;
+        case(RKNet::ROOMTYPE_FROOM_HOST):
+        case(RKNet::ROOMTYPE_FROOM_NONHOST): return IsBattle();
+        default: return true;
+    }
+}
+*/
 
 const u8 CupsConfig::idToCourseId[32] ={
     0x08, 0x01, 0x02, 0x04, //mushroom cup

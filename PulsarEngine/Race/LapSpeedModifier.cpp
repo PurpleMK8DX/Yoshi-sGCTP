@@ -11,7 +11,10 @@ namespace Pulsar {
 namespace Race {
 //Mostly a port of MrBean's version with better hooks and arguments documentation
 RaceinfoPlayer* LoadCustomLapCount(RaceinfoPlayer* player, u8 id) {
-    const u8 lapCount = KMP::Manager::sInstance->stgiSection->holdersArray[0]->raw->lapCount;
+    u8 lapCount = KMP::Manager::sInstance->stgiSection->holdersArray[0]->raw->lapCount;
+    if (lapCount == 0) {
+        lapCount = 3;
+    }
     Racedata::sInstance->racesScenario.settings.lapCount = lapCount;
     return new(player) RaceinfoPlayer(id, lapCount);
 }
@@ -49,7 +52,12 @@ Kart::Stats* ApplySpeedModifier(KartId kartId, CharacterId characterId) {
     Item::blueShellHomingSpeed = 130.0f * factor;
 
     Kart::hardSpeedCap = 120.0f * factor;
-    Kart::bulletSpeed = 145.0f * factor;
+	Kart::bulletSpeed = 145.0f * factor;
+	
+	if(System::sInstance->IsContext(PULSAR_MEGATC)){
+    Kart::bulletSpeed = 152.25f * factor;
+	}
+	
     Kart::starSpeed = 105.0f * factor;
     Kart::megaTCSpeed = 95.0f * factor;
 
@@ -60,6 +68,11 @@ Kart::Stats* ApplySpeedModifier(KartId kartId, CharacterId characterId) {
     stats->standard_acceleration_as[3] *= factor;
 
     Kart::minDriftSpeedRatio = 0.55f * (factor > 1.0f ? (1.0f / factor) : 1.0f);
+	
+	if(System::sInstance->IsContext(PULSAR_MEGATC)){
+    Kart::minDriftSpeedRatio = 0.40f * (factor > 1.0f ? (1.0f / factor) : 1.0f);
+	}
+	
     Kart::unknown_70 = 70.0f * factor;
     Kart::regularBoostAccel = 3.0f * factor;
 
