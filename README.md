@@ -50,3 +50,9 @@ Network:
 
 Credits:
 - Treeki for [Kamek](https://github.com/Treeki/Kamek/tree/master). The engine has been ever so slightly modified to create a new output format which combines the usual 4 binaries. 
+
+# Yosh's Track Pack DX
+
+Hello, I am very stupid. I do not really use GitHub, but here is the source code for YTPDX v3.
+
+Thank you to Optllizer for the OptPack source code. I would also like to thank the Retro Rewind & Insane Kart Wii team for the source codes to those mods as well. Most features are not from those mods, but I did look at the source codes for reference on how Pulsar works.
