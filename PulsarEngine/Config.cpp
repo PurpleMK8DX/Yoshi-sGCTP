@@ -11,7 +11,7 @@ u32 ConfigFile::readBytes = 0;
 //Create Pulsar
 ConfigFile& ConfigFile::LoadConfig() {
     EGG::ExpHeap* mem2Heap = RKSystem::mInstance.sceneManager->currentScene->mainMEMHeap;
-    ConfigFile* conf = static_cast<ConfigFile*>(EGG::DvdRipper::LoadToMainRAM("Binaries/Config.pul", nullptr, mem2Heap,
+    ConfigFile* conf = static_cast<ConfigFile*>(EGG::DvdRipper::LoadToMainRAM("binaries/Config.pul", nullptr, mem2Heap,
         EGG::DvdRipper::ALLOC_FROM_TAIL, 0, &readBytes, nullptr));
 
     if(conf == nullptr) Debug::FatalError(error);

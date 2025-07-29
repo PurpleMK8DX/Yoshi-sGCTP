@@ -25,6 +25,13 @@ public:
         return count;
     }
     inline u16 GetChooseNextTrackTimer() const { return this->chooseNextTrackTimer; }
+	
+	//contextchecking
+	static bool IsHAW(bool isHost);
+    static bool Is200cc();
+    static bool IsFeather();
+    static bool IsUMTs();
+    static bool IsMegaTC();
 
 private:
     Info() {}

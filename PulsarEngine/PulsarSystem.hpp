@@ -5,6 +5,7 @@
 #include <core/egg/mem/ExpHeap.hpp>
 #include <MarioKartWii/System/Identifiers.hpp>
 #include <MarioKartWii/UI/Text/Text.hpp>
+#include <Gamemodes/OnlineTT/OnlineTT.hpp>
 #include <Extensions/LECODE/LECODEMgr.hpp>
 #include <Debug/Debug.hpp>
 #include <IO/IO.hpp>
@@ -30,6 +31,8 @@ enum Context {
     PULSAR_MEGATC,
     PULSAR_HAW,
     PULSAR_MIIHEADS,
+    PULSAR_REGS,
+    PULSAR_REGSONLY,
     PULSAR_MODE_OTT,
     PULSAR_MODE_KO,
     PULSAR_CONTEXT_COUNT,
@@ -75,26 +78,26 @@ public:
 
     //BMG
     const BMGHolder& GetBMG() const { return customBmgs; }
-    /*
-    #define PatchRegion(addr)\
+    
+   /* #define PatchRegion(addr)\
         static inline u64 GetWiimmfiRegionStatic##addr(u64 src) {\
             register const Info *info = &System::sInstance->GetInfo();\
             asmVolatile(lwz r7, Info.wiimmfiRegion(info););\
             return src;\
         };\
         kmBranch(addr, GetWiimmfiRegionStatic##addr);\
-        kmPatchExitPoint(GetWiimmfiRegionStatic##addr, ##addr + 4);
-    */
+        kmPatchExitPoint(GetWiimmfiRegionStatic##addr, ##addr + 4);*/
+    
     //VARIABLES
     EGG::ExpHeap* const heap; //0x4
     EGG::TaskThread* const taskThread; //0x8
     //Constants
-
+    u32 context;
 private:
     char modFolderName[IOS::ipcMaxFileName + 1]; //0xC
     u8 padding[2];
     Info info; //0x1c
-    u32 context;
+    //u32 context;
 
 public:
     //Network variables only set when reading a ROOM packet that starts the GP; they are only ever used in UpdateState; no need to clear them as ROOM will reupdat ethem
@@ -107,6 +110,7 @@ public:
 
     //Modes
     KO::Mgr* koMgr;
+    OTT::Mgr ottMgr;
     u32 ottVoteState;
     bool ottHideNames;
     u8 nonTTGhostPlayersCount; //because a ghost can be added in vs, racedata's playercount is not reliable
@@ -136,7 +140,16 @@ public:
     };
     static Inherit* inherit;
     friend class Info;
+
+
+static inline void CacheInvalidateAddress(register u32 address) {
+        asm(dcbst 0, address;);
+        asm(sync;);
+        asm(icbi 0, address;);
+        asm(isync;);
+    }
 };
+
 } //namespace Pulsar
 
 #endif

@@ -9,7 +9,7 @@
 namespace Pulsar {
 namespace Sound {
 using namespace nw4r;
-
+/*
 //RaceAudioMgr SetRaceState patch that skips the entire func, effectively disabling the mgr
 static void DisableRaceMusic(Audio::SinglePlayer& singlePlayer, u32 soundId, s16 delay) {
     const bool isEnabled = Settings::Mgr::Get().GetSettingValue(Settings::SETTINGSTYPE_MENU, SETTINGMENU_RADIO_MUSIC) == MENUSETTING_MUSIC_DEFAULT;
@@ -96,7 +96,7 @@ static float CheckFanfare(const Audio::SinglePlayer& singlePlayer) {
     else return -1.0f;
 }
 kmCall(0x80857860, CheckFanfare);
-
+*/
 snd::SoundStartable::StartResult PlayExtBRSEQ(snd::SoundStartable& startable, Audio::Handle& handle, const char* fileName, const char* labelName, bool hold) {
     snd::SoundStartable::StartInfo startInfo;
     startInfo.seqSoundInfo.startLocationLabel = labelName;
@@ -111,7 +111,7 @@ snd::SoundStartable::StartResult PlayExtBRSEQ(snd::SoundStartable& startable, Au
     return snd::SoundStartable::START_ERR_USER;
 }
 
-
+/*
 //disable TF music delay
 kmWrite16(0x80711FE8, 0x00004800);
 kmWrite16(0x80712024, 0x00004800);
@@ -122,6 +122,6 @@ kmWrite16(0x807120B8, 0x00004800);
 kmWrite32(0x80719920, 0x48000010);
 
 //disable THP and demo by blring SinglePlayer::CalcTitlePageNext
-kmWrite32(0x806fa738, 0x4e800020);
+kmWrite32(0x806fa738, 0x4e800020);*/
 }//namespace Sound
 }//namespace Pulsar

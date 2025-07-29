@@ -47,7 +47,9 @@ void CtrlRaceSpeedo::Load(const char* variant, u8 id) {
     return;
 }
 
+
 void CtrlRaceSpeedo::Init() {
+/* This allows for White Speedometer.
     this->HudSlotColorEnable("speed0", true);
     this->HudSlotColorEnable("speed1", true);
     this->HudSlotColorEnable("speed2", true);
@@ -56,6 +58,7 @@ void CtrlRaceSpeedo::Init() {
     this->HudSlotColorEnable("speed5", true);
     this->HudSlotColorEnable("speed6", true);
     this->HudSlotColorEnable("kmh", true);
+*/
     LayoutUIControl::Init();
     return;
 }

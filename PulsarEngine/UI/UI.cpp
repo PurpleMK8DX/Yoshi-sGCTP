@@ -5,16 +5,14 @@
 //Expanded Pages:
 #include <Ghost/UI/ExpGhostSelect.hpp>
 #include <SlotExpansion/UI/ExpCupSelect.hpp>
-#include <AutoTrackSelect/ExpFroomMessages.hpp>
 #include <Settings/UI/ExpFroomPage.hpp>
 #include <Settings/UI/ExpOptionsPage.hpp>
 #include <Settings/UI/ExpWFCMainPage.hpp>
 #include <UI/ChangeCombo/ChangeCombo.hpp>
+#include <UI/RoomKick/RoomKickPage.hpp>
 
 //Pulsar Custom Pages:
 #include <UI/TeamSelect/TeamSelect.hpp>
-#include <AutoTrackSelect/AutoVote.hpp>
-#include <AutoTrackSelect/ChooseNextTrack.hpp>
 #include <Gamemodes/KO/KORaceEndPage.hpp>
 #include <Gamemodes/KO/KOMgr.hpp>
 #include <Gamemodes/KO/KOWinnerPage.hpp>
@@ -32,8 +30,7 @@ kmWrite32(0x80635058, 0x60000000);
 
 void ExpSection::CreatePages(ExpSection& self, SectionId id) {
     const System* system = System::sInstance;
-    self.hasAutoVote = (id >= SECTION_P1_WIFI_FROOM_VS_VOTING && id <= SECTION_P2_WIFI_FROOM_COIN_VOTING) && system->IsContext(PULSAR_HAW); //can't think of a better way to do this awkward thing, where the usual pages are NOT built
-    if(!self.hasAutoVote) self.CreateSectionPages(id);
+    self.CreateSectionPages(id);
     memset(&self.pulPages, 0, sizeof(Page*) * PULPAGE_MAX);
     self.CreatePulPages();
 }
@@ -60,14 +57,18 @@ void ExpSection::CreatePulPages() {
                 Pages::RaceHUD::sInstance->nextPageId = PAGE_TT_SPLITS;
             }
             break;
-            //case SECTION_P1_WIFI_FROOM_VS_VOTING:      //0x60
-            //case SECTION_P1_WIFI_FROOM_TEAMVS_VOTING:  //0x61
-            //case SECTION_P1_WIFI_FROOM_BALLOON_VOTING: //0x62
-            //case SECTION_P1_WIFI_FROOM_COIN_VOTING:    //0x63
-            //case SECTION_P2_WIFI_FROOM_VS_VOTING:      //0x64
-            //case SECTION_P2_WIFI_FROOM_TEAMVS_VOTING:  //0x65
-            //case SECTION_P2_WIFI_FROOM_BALLOON_VOTING: //0x66
-            //case SECTION_P2_WIFI_FROOM_COIN_VOTING:    //0x67
+            case SECTION_P1_WIFI_VS_VOTING:   
+            case SECTION_P2_WIFI_VS_VOTING:                   
+            case SECTION_P1_WIFI_FROOM_VS_VOTING:      //0x60
+            case SECTION_P1_WIFI_FROOM_TEAMVS_VOTING:  //0x61
+            case SECTION_P1_WIFI_FROOM_BALLOON_VOTING: //0x62
+            case SECTION_P1_WIFI_FROOM_COIN_VOTING:    //0x63
+            case SECTION_P2_WIFI_FROOM_VS_VOTING:      //0x64
+            case SECTION_P2_WIFI_FROOM_TEAMVS_VOTING:  //0x65
+            case SECTION_P2_WIFI_FROOM_BALLOON_VOTING: //0x66
+            case SECTION_P2_WIFI_FROOM_COIN_VOTING:    //0x67
+            this->CreateAndInitPage(*this, SettingsPanel::id);
+            break;
 
         case SECTION_P1_WIFI_VS: //0x68
         case SECTION_P2_WIFI_VS: //0x69
@@ -83,20 +84,11 @@ void ExpSection::CreatePulPages() {
                 this->CreateAndInitPage(*this, KO::RaceEndPage::id);
                 this->CreateAndInitPage(*this, KO::WinnerPage::id);
             }
-            if(system->IsContext(PULSAR_HAW)) {
-                if(SectionMgr::sInstance->sectionParams->onlineParams.currentRaceNumber != System::sInstance->netMgr.racesPerGP) this->CreateAndInitPage(*this, ChooseNextTrack::id);
-            }
             break;
         case SECTION_P1_WIFI_FRIEND_BALLOON:  //0x72
         case SECTION_P1_WIFI_FRIEND_COIN:     //0x73
         case SECTION_P2_WIFI_FRIEND_BALLOON:  //0x76
         case SECTION_P2_WIFI_FRIEND_COIN:     //0x77
-
-            if(system->IsContext(PULSAR_HAW)) {
-                const SectionParams* sectionParams = SectionMgr::sInstance->sectionParams;
-                if(sectionParams->redWins < 2 && sectionParams->blueWins < 2) this->CreateAndInitPage(*this, ChooseNextTrack::id);
-            }
-            break;
         case SECTION_SINGLE_P_FROM_MENU:         //0x48
         case SECTION_SINGLE_P_TT_CHANGE_CHARA:   //0x49
         case SECTION_SINGLE_P_TT_CHANGE_COURSE:  //0x4a
@@ -118,7 +110,10 @@ void ExpSection::CreatePulPages() {
         this->CreateAndInitPage(*this, PAGE_MESSAGEBOX);
         this->CreateAndInitPage(*this, PAGE_SELECT_STAGE_MGR);
     }
-    if(this->Get<ExpFroom>() != nullptr) this->CreateAndInitPage(*this, PULPAGE_TEAMSELECT); //can also put it as part of the case froom of createandinitpage
+    if(this->Get<ExpFroom>() != nullptr) {
+        this->CreateAndInitPage(*this, PULPAGE_TEAMSELECT);
+        this->CreateAndInitPage(*this, RoomKickPage::id);
+    }
 }
 
 void ExpSection::CreateAndInitPage(ExpSection& self, u32 id) {
@@ -170,18 +165,22 @@ void ExpSection::CreateAndInitPage(ExpSection& self, u32 id) {
         case PAGE_MULTIPLAYER_KART_SELECT:
             page = new ExpMultiKartSelect;
             break;
-        case PAGE_SELECT_STAGE_MGR:
-            if(self.hasAutoVote) page = new AutoVote;
-            else page = new Pages::SELECTStageMgr;
+        case PAGE_GPVS_LEADERBOARD_UPDATE:
+            page = new ExpGPVSLeaderboardUpdate;
+            break;
+        case PAGE_GPVS_TOTAL_LEADERBOARDS:
+            page = new ExpGPVSLeaderboardTotal;
+            break;
+        case PAGE_WW_LEADERBOARDS_UPDATE:
+            page = new ExpWWLeaderboardUpdate;
             break;
 
             //PULPAGES
-        case ChooseNextTrack::id:
-            initId = ChooseNextTrack::fakeId;
-            page = new ChooseNextTrack;
-            break;
         case TeamSelect::id:
             page = new TeamSelect;
+            break;
+        case RoomKickPage::id:
+            page = new RoomKickPage;
             break;
         case KO::RaceEndPage::id:
             initId = KO::RaceEndPage::fakeId;

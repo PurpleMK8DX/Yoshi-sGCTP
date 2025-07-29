@@ -58,6 +58,9 @@ void System::Init(const ConfigFile& conf) {
     }
     strncpy(this->modFolderName, conf.header.modFolderName, IOS::ipcMaxFileName);
 
+    static char* pulMagic = reinterpret_cast<char*>(0x800017CC); //for RWFC
+    strcpy(pulMagic, "PUL2"); //for RWFC
+    
     //InitInstances
     CupsConfig::sInstance = new CupsConfig(conf.GetSection<CupsHolder>());
     this->info.Init(conf.GetSection<InfoHolder>().info);
@@ -76,7 +79,7 @@ void System::Init(const ConfigFile& conf) {
     }
 
     //Track blocking 
-    u32 trackBlocking = this->info.GetTrackBlocking();
+    u32 trackBlocking = 32;
     this->netMgr.lastTracks = new PulsarId[trackBlocking];
     for(int i = 0; i < trackBlocking; ++i) this->netMgr.lastTracks[i] = PULSARID_NONE;
     const BMGHeader* const confBMG = &conf.GetSection<PulBMG>().header;
@@ -101,7 +104,7 @@ void System::InitIO(IOType type) const {
         Debug::FatalError(path);
     }
     char ghostPath[IOS::ipcMaxPath];
-    snprintf(ghostPath, IOS::ipcMaxPath, "%s%s", modFolder, "/Ghosts");
+    snprintf(ghostPath, IOS::ipcMaxPath, "%s%s", modFolder, "/ghosts");
     io->CreateFolder(ghostPath);
 }
 #pragma suppress_warnings reset
@@ -116,13 +119,15 @@ void System::InitSettings(const u16* totalTrophyCount) const {
 
 void System::UpdateContext() {
     const RacedataSettings& racedataSettings = Racedata::sInstance->menusScenario.settings;
-    this->ottVoteState = OTT::COMBO_NONE;
+    this->ottMgr.Reset();
     const Settings::Mgr& settings = Settings::Mgr::Get();
     bool isCT = true;
     bool isHAW = false;
     bool isKO = false;
     bool isOTT = false;
     bool isMiiHeads = settings.GetSettingValue(Settings::SETTINGSTYPE_RACE, SETTINGRACE_RADIO_MII);
+    bool isRegs = false;
+    bool isRegsOnly = false;
 
     const RKNet::Controller* controller = RKNet::Controller::sInstance;
     const GameMode mode = racedataSettings.gamemode;
@@ -149,6 +154,8 @@ void System::UpdateContext() {
                 isKO = newContext & (1 << PULSAR_MODE_KO);
                 isOTT = newContext & (1 << PULSAR_MODE_OTT);
                 isMiiHeads = newContext & (1 << PULSAR_MIIHEADS);
+                isRegs = newContext & (1 << PULSAR_REGS);
+                isRegsOnly = newContext & (1 << PULSAR_REGSONLY);
                 if(isOTT) {
                     isUMTs &= newContext & (1 << PULSAR_UMTS);
                     isFeather &= newContext & (1 << PULSAR_FEATHER);
@@ -167,12 +174,30 @@ void System::UpdateContext() {
     }
     this->netMgr.hostContext = newContext;
 
-    u32 context = (isCT << PULSAR_CT) | (isHAW << PULSAR_HAW) | (isMiiHeads << PULSAR_MIIHEADS);
+    u32 preserved = this->context & ((1 << PULSAR_MODE_OTT));
+    
+    u32 newContextValue = (isCT << PULSAR_CT) | (isHAW << PULSAR_HAW) | (isMiiHeads << PULSAR_MIIHEADS) | (isRegs << PULSAR_REGS) | (isRegsOnly << PULSAR_REGSONLY);
     if(isCT) { //contexts that should only exist when CTs are on
-        context |= (is200 << PULSAR_200) | (isFeather << PULSAR_FEATHER) | (isUMTs << PULSAR_UMTS) | (isMegaTC << PULSAR_MEGATC) | (isOTT << PULSAR_MODE_OTT) | (isKO << PULSAR_MODE_KO);
+        newContextValue |= (is200 << PULSAR_200) | (isFeather << PULSAR_FEATHER) | (isUMTs << PULSAR_UMTS) | (isMegaTC << PULSAR_MEGATC) | (isOTT << PULSAR_MODE_OTT) | (isKO << PULSAR_MODE_KO);
     }
-    this->context = context;
 
+    this->context = newContextValue | preserved;
+
+
+    const u32 region = this->netMgr.region;
+    if (RKNet::Controller::sInstance->roomType == RKNet::ROOMTYPE_VS_REGIONAL || RKNet::Controller::sInstance->roomType == RKNet::ROOMTYPE_JOINING_REGIONAL) {
+        switch (region) {
+            case 0x338: 
+                this->context |= (1 << PULSAR_CT);
+                sInstance->context &= ~(1 << PULSAR_MODE_OTT);
+                break;
+                
+            case 0x339: 
+                this->context |= (1 << PULSAR_CT);
+                this->context |= (1 << PULSAR_MODE_OTT);
+                break;
+        }
+    }
     //Create temp instances if needed:
     /*
     if(sceneId == SCENE_ID_RACE) {
@@ -192,11 +217,10 @@ void System::UpdateContext() {
         this->koMgr = nullptr;
     }
 }
-
 s32 System::OnSceneEnter(Random& random) {
     System* self = System::sInstance;
     self->UpdateContext();
-    if(self->IsContext(PULSAR_MODE_OTT)) OTT::AddGhostToVS();
+    //if(self->IsContext(PULSAR_MODE_OTT)) OTT::AddGhostToVS();
     if(self->IsContext(PULSAR_HAW) && self->IsContext(PULSAR_MODE_KO) && GameScene::GetCurrent()->id == SCENE_ID_RACE && SectionMgr::sInstance->sectionParams->onlineParams.currentRaceNumber > 0) {
         KO::HAWChangeData();
     }
@@ -227,8 +251,17 @@ asmFunc System::GetNonTTGhostPlayersCount() {
 //Unlock Everything Without Save (_tZ)
 kmWrite32(0x80549974, 0x38600001);
 
+
 //Skip ESRB page
 kmRegionWrite32(0x80604094, 0x4800001c, 'E');
+
+/*
+//OptPack Pack ID
+kmWrite32(0x800017D0, 0x36B);
+
+//OptPack Pack Version 4656
+kmWrite32(0x800017D4, 0x00001230);
+*/
 
 const char System::pulsarString[] = "/Pulsar";
 const char System::CommonAssets[] = "/CommonAssets.szs";

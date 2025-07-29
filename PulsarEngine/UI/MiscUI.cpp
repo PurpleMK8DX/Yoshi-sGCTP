@@ -3,13 +3,15 @@
 #include <MarioKartWii/UI/Page/Other/Title.hpp>
 #include <MarioKartWii/UI/Page/Other/Message.hpp>
 #include <MarioKartWii/RKSYS/RKSYSMgr.hpp>
+#include <MarioKartWii/RKSYS/LicenseMgr.hpp>
 #include <MarioKartWii/GlobalFunctions.hpp>
 #include <PulsarSystem.hpp>
-#include <AutoTrackSelect/ChooseNextTrack.hpp>
 #include <Gamemodes/KO/KOMgr.hpp>
 #include <Gamemodes/KO/KORaceEndPage.hpp>
 #include <Debug/Debug.hpp>
 #include <UI/UI.hpp>
+#include <MarioKartWii/Kart/KartLink.hpp>
+#include <Settings/Settings.hpp>
 
 
 
@@ -28,10 +30,6 @@ static PageId AfterWifiResults(PageId id) {
     const System* system = System::sInstance;
 
     if (system->IsContext(PULSAR_MODE_KO)) id = system->koMgr->KickPlayersOut(id); //return KO::RaceEndPage with the choice to spectate if the local players are out 
-    if (id != static_cast<PageId>(KO::RaceEndPage::id) && system->IsContext(PULSAR_HAW)) {
-        ChooseNextTrack* chooseNext = ExpSection::GetSection()->GetPulPage<ChooseNextTrack>();
-        if (chooseNext != nullptr) id = chooseNext->GetPageAfterWifiResults(id);
-    }
     return id;
 }
 kmBranch(0x80646754, AfterWifiResults);
@@ -84,7 +82,7 @@ static void CustomRoomDenyText(Pages::MessageBoxTransparent* msgBox, u32 bmgId, 
     msgBox->SetMessageWindowText(bmgId, info);
 }
 kmCall(0x805dd90c, CustomRoomDenyText);
-
+/*
 SectionParams& FavouriteCombo(SectionParams& params) {
     const RKSYS::Mgr* rksysMgr = RKSYS::Mgr::sInstance;
     s32 curLicense = rksysMgr->curLicenseId;
@@ -117,7 +115,18 @@ SectionParams& FavouriteCombo(SectionParams& params) {
 
     return params;
 }
-kmBranch(0x805e4228, FavouriteCombo);
+kmBranch(0x805e4228, FavouriteCombo);*/
+
+
+void SetDefaultToFavouriteCombo(SectionParams& params, PushButton& button) {
+    const RKSYS::Mgr* rksysMgr = RKSYS::Mgr::sInstance;
+    const RKSYS::LicenseMgr& LicenseMgr = rksysMgr->licenses[button.buttonId - 1];
+    params.ChangeLicense();
+    params.characters[0] = LicenseMgr.GetFavouriteCharacter();
+    params.karts[0] = LicenseMgr.GetFavouriteKart();
+}
+kmCall(0x805eb7c4, SetDefaultToFavouriteCombo);
+
 
 u8 ModifyCheckRankings() {
     register Pages::RaceMenu* ttEnd;
@@ -132,6 +141,40 @@ u8 ModifyCheckRankings() {
 kmCall(0x8085b4bc, ModifyCheckRankings);
 kmPatchExitPoint(ModifyCheckRankings, 0x8085bbe0);
 
+static bool s_hasSavedCameraParams = false;
+static CameraParamBin s_savedCameraParams;
 
+CameraParamBin* GetKartParamCamera(u32 weight, u32 screenCount) {
+    CameraParamBin* cameraParam = Kart::Link::GetCameraParamBin(weight, screenCount);
+    if (cameraParam != nullptr && !s_hasSavedCameraParams) {
+        s_savedCameraParams = *cameraParam;
+        s_hasSavedCameraParams = true;
+    } // Closing brace added here
+
+    MenuSetting2FOV fovChange = static_cast<MenuSetting2FOV>(Settings::Mgr::Get().GetSettingValue(Settings::SETTINGSTYPE_MENU2, SETTINGMENU2_RADIO_FOV));
+    if (fovChange != MENUSETTING2_FOV_DEFAULT) {
+        if (fovChange == MENUSETTING2_FOV_169) {
+            for (int i = 0; i < 9; ++i) {
+                s_savedCameraParams.camerasParam[i][0] = cameraParam->camerasParam[i][1];
+                s_savedCameraParams.camerasParam[i][1] = cameraParam->camerasParam[i][1];
+                s_savedCameraParams.camerasParam[i][2] = cameraParam->camerasParam[i][3];
+                s_savedCameraParams.camerasParam[i][3] = cameraParam->camerasParam[i][3];
+            }
+        } else if (fovChange == MENUSETTING2_FOV_43) {
+            for (int i = 0; i < 9; ++i) {
+                s_savedCameraParams.camerasParam[i][0] = cameraParam->camerasParam[i][0];
+                s_savedCameraParams.camerasParam[i][1] = cameraParam->camerasParam[i][0];
+                s_savedCameraParams.camerasParam[i][2] = cameraParam->camerasParam[i][2];
+                s_savedCameraParams.camerasParam[i][3] = cameraParam->camerasParam[i][2];
+            }
+        }
+
+        return &s_savedCameraParams;
+    }
+
+    return cameraParam;
+}
+
+kmCall(0x805a20d4, GetKartParamCamera);
 }//namespace UI
 }//namespace Pulsar
