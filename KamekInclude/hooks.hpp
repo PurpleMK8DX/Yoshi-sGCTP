@@ -118,5 +118,25 @@
 #define kmWrite24(address, instruction) \
 	kmWrite16(address, (instruction & 0xFFFF00) >> 0x8); \
 	kmWrite8(address + 0x2, instruction & 0xFF);
+/*
+//Custom Hooks
+extern char gameID[4];
+template <unsigned int address, unsigned int instruction, char region>
+int PatchRegion() {
+    if(gameID[3] == region) {
+        register unsigned int* addressPtr = (unsigned int*)address;
+        *addressPtr = instruction;
+        asm{
+            ASM(
+            dcbst 0, addressPtr;
+            sync;
+            icbi 0, addressPtr;
+            )
+        }
+    }
+    return 0;
+}
+#define kmWriteRegionInstruction(address, instruction, region) \
+	static int kmIdentifier(Int, __COUNTER__) = PatchRegion<address, instruction, region>()*/
 
 #endif

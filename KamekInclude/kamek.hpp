@@ -19,6 +19,8 @@
 #include <MarioKartWii/Math/Vector.hpp>
 #include <core/nw4r/ut/LinkList.hpp>
 #include <core/nw4r/ut/List.hpp>
+
+#include <core/rvl/os/OS.hpp>
  //just for usability in other structs
 
 /*
@@ -232,6 +234,13 @@ public:
     static void Exec() { DoFuncsHook::Exec(raceLoadHooks); }
 };
 
+class PageLoadHook : public DoFuncsHook {
+    static DoFuncsHook* pageLoadHooks;
+public:
+    PageLoadHook(Func& f) : DoFuncsHook(f, &pageLoadHooks) {}
+    static void Exec() { DoFuncsHook::Exec(pageLoadHooks); }
+};
+
 class RaceFrameHook : public DoFuncsHook {
     static DoFuncsHook* raceFrameHooks;
 public:
@@ -289,4 +298,8 @@ public:
         }
     }
 };
+
+#define DEBUG_PULSAR
+#define PULSARLog(f, ...) OS::Report("[PULSAR:%s:%d] " f, __FILE__, __LINE__, ##__VA_ARGS__)
+
 #endif
